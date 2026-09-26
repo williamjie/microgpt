@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tokenizer & BOS Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root {
+  --bg: #0f0f23; --bg2: #1a1a2e; --bg3: #161630;
+  --green: #16c784; --red: #e94560; --yellow: #f0c040;
+  --blue: #6c5ce7; --cyan: #00d2d3; --orange: #ff9f43;
+  --text: #eaeaea; --text-dim: #8888aa; --border: #2a2a4e;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; }
+.container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+.top-nav { margin-bottom: 16px; }
+.top-nav a {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  color: var(--cyan); text-decoration: none;
+}
+.top-nav a:hover { color: var(--green); }
+.header h1 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px; font-weight: 700; color: var(--green); display: inline;
+}
+.header .tag {
+  background: rgba(22,199,132,0.15); color: var(--green);
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  padding: 3px 10px; border-radius: 3px; margin-left: 12px; vertical-align: middle;
+}
+.subtitle {
+  color: var(--text-dim); font-size: 14px; margin: 6px 0 24px;
+  font-weight: 300; line-height: 1.6;
+}
+.controls { display: flex; gap: 8px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+.ctrl-btn {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  padding: 10px 20px; border-radius: 8px; cursor: pointer; transition: all 0.15s;
+}
+.ctrl-btn:hover { border-color: var(--green); background: rgba(22,199,132,0.1); }
+.ctrl-btn.primary { background: rgba(22,199,132,0.15); border-color: var(--green); color: var(--green); }
+.ctrl-btn.reset:hover { border-color: var(--red); color: var(--red); }
+.ctrl-btn:disabled { opacity: 0.3; cursor: default; }
+.phase-pill {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  padding: 6px 14px; border-radius: 20px; margin-left: auto;
+  background: var(--bg3); color: var(--text-dim); border: 1px solid var(--border);
+}
+.narration {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 14px; min-height: 64px; align-items: flex-start;
+}
+.narration-icon { font-size: 18px; min-width: 24px; }
+.narration-text {
+  font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.65; color: var(--text);
+}
+.hl-g { color: var(--green); font-weight: 600; }
+.hl-y { color: var(--yellow); font-weight: 600; }
+.hl-b { color: var(--blue); font-weight: 600; }
+.hl-c { color: var(--cyan); font-weight: 600; }
+.panel {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px; margin-bottom: 16px;
+}
+.panel-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 14px;
+}
+.alpha-grid {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.alpha-cell {
+  width: 52px; padding: 8px 4px; border-radius: 8px; text-align: center;
+  background: var(--bg3); border: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace; transition: all 0.25s;
+  opacity: 0.25;
+}
+.alpha-cell.show { opacity: 1; }
+.alpha-cell.bos {
+  border-color: var(--yellow); background: rgba(240,192,64,0.12);
+}
+.alpha-cell .ch { font-size: 16px; font-weight: 700; color: var(--text); }
+.alpha-cell .id { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+.alpha-cell.bos .ch { color: var(--yellow); }
+.word-row {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; min-height: 90px;
+}
+.tok {
+  min-width: 64px; padding: 12px 8px; border-radius: 8px; text-align: center;
+  background: var(--bg3); border: 2px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  opacity: 0; transform: scale(0.7); transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.tok.show { opacity: 1; transform: scale(1); }
+.tok.bos { border-color: var(--yellow); background: rgba(240,192,64,0.12); }
+.tok .ch { font-size: 22px; font-weight: 700; }
+.tok.bos .ch { color: var(--yellow); }
+.tok .meta { font-size: 10px; color: var(--text-dim); margin-top: 6px; }
+.id-line {
+  font-family: 'JetBrains Mono', monospace; font-size: 15px;
+  color: var(--cyan); letter-spacing: 1px; margin-top: 8px;
+  min-height: 24px;
+}
+.hint {
+  font-size: 12px; color: var(--text-dim); margin-top: 10px; line-height: 1.5;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top-nav"><a href="demos_index.html">← 演示大厅</a></div>
+  <div class="header">
+    <h1>Tokenizer & BOS</h1>
+    <span class="tag">INTERACTIVE</span>
+  </div>
+  <p class="subtitle">
+    神经网络只处理数字。本页逐步演示：字符表 → BOS → 把 <strong style="color:var(--yellow)">emma</strong> 编成 token id 序列。
+  </p>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="btn-prev">← 上一步</button>
+    <button class="ctrl-btn primary" id="btn-next">下一步 →</button>
+    <button class="ctrl-btn reset" id="btn-reset">重置</button>
+    <div class="phase-pill" id="phase">步骤 0 / 5</div>
+  </div>
+
+  <div class="narration">
+    <div class="narration-icon">💡</div>
+    <div class="narration-text" id="narration"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">词汇表（字符 → id）</div>
+    <div class="alpha-grid" id="alpha-grid"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">文档 emma → Token 序列</div>
+    <div class="word-row" id="word-row"></div>
+    <div class="id-line" id="id-line"></div>
+    <div class="hint">对应代码：<span style="color:var(--yellow)">microgpt.py</span> 第 2 部分 · vocab_size = 27</div>
+  </div>
+</div>
+
+<script>
+const LETTERS = 'abcdefghijklmnopqrstuvwxyz'.split('');
+const WORD = ['BOS', 'e', 'm', 'm', 'a', 'BOS'];
+const IDS = [26, 4, 12, 12, 0, 26];
+
+const STEPS = [
+  {
+    phase: '就绪',
+    narr: '点击 <span class="hl-g">下一步</span>。模型不认字母，只认编号——我们先造一张「字母编号表」。',
+    showLetters: 0, showBos: false, showToks: 0, showIds: false
+  },
+  {
+    phase: '字符表',
+    narr: '数据集里出现过的字符排序后编号：<span class="hl-y">a→0 … z→25</span>。编号本身没有意义，只是离散符号。',
+    showLetters: 26, showBos: false, showToks: 0, showIds: false
+  },
+  {
+    phase: '加入 BOS',
+    narr: '再加一个特殊 token <span class="hl-y">BOS</span>（id=26）：像哨声，表示「新名字开始 / 名字结束」。词汇表大小变成 <span class="hl-c">27</span>。',
+    showLetters: 26, showBos: true, showToks: 0, showIds: false
+  },
+  {
+    phase: '包裹名字',
+    narr: '训练时，名字 <span class="hl-y">emma</span> 两边都加 BOS：<span class="hl-g">[BOS, e, m, m, a, BOS]</span>。',
+    showLetters: 26, showBos: true, showToks: 6, showIds: false
+  },
+  {
+    phase: '变成 id',
+    narr: '查表得到 id 序列 <span class="hl-c">[26, 4, 12, 12, 0, 26]</span>。模型学的是：根据前面的 id，预测下一个 id。',
+    showLetters: 26, showBos: true, showToks: 6, showIds: true
+  },
+  {
+    phase: '完成',
+    narr: 'ChatGPT 也是「token 序列 → 预测下一个」。差别在于生产用 <span class="hl-b">BPE 子词</span>，词汇表约十万级；microgpt 用字符级，方便教学。',
+    showLetters: 26, showBos: true, showToks: 6, showIds: true
+  }
+];
+
+let step = 0;
+
+function buildUI() {
+  const grid = document.getElementById('alpha-grid');
+  grid.innerHTML = '';
+  LETTERS.forEach((ch, i) => {
+    const d = document.createElement('div');
+    d.className = 'alpha-cell';
+    d.id = 'L' + i;
+    d.innerHTML = `<div class="ch">${ch}</div><div class="id">${i}</div>`;
+    grid.appendChild(d);
+  });
+  const bos = document.createElement('div');
+  bos.className = 'alpha-cell bos';
+  bos.id = 'LBOS';
+  bos.innerHTML = `<div class="ch">BOS</div><div class="id">26</div>`;
+  grid.appendChild(bos);
+
+  const row = document.getElementById('word-row');
+  row.innerHTML = '';
+  WORD.forEach((ch, i) => {
+    const d = document.createElement('div');
+    d.className = 'tok' + (ch === 'BOS' ? ' bos' : '');
+    d.id = 'T' + i;
+    d.innerHTML = `<div class="ch">${ch === 'BOS' ? '▷' : ch}</div><div class="meta">pos ${i}</div>`;
+    row.appendChild(d);
+  });
+}
+
+function render() {
+  const s = STEPS[step];
+  document.getElementById('narration').innerHTML = s.narr;
+  document.getElementById('phase').textContent = `步骤 ${step} / ${STEPS.length - 1} · ${s.phase}`;
+  document.getElementById('btn-prev').disabled = step === 0;
+  document.getElementById('btn-next').disabled = step === STEPS.length - 1;
+
+  for (let i = 0; i < 26; i++) {
+    document.getElementById('L' + i).classList.toggle('show', i < s.showLetters);
+  }
+  document.getElementById('LBOS').classList.toggle('show', s.showBos);
+
+  for (let i = 0; i < 6; i++) {
+    document.getElementById('T' + i).classList.toggle('show', i < s.showToks);
+  }
+  document.getElementById('id-line').textContent = s.showIds
+    ? 'ids = [' + IDS.join(', ') + ']'
+    : '';
+}
+
+document.getElementById('btn-next').onclick = () => { if (step < STEPS.length - 1) { step++; render(); } };
+document.getElementById('btn-prev').onclick = () => { if (step > 0) { step--; render(); } };
+document.getElementById('btn-reset').onclick = () => { step = 0; render(); };
+
+buildUI();
+render();
+</script>
+</body>
+</html>

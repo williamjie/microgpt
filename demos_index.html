@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>microgpt 演示大厅</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root {
+  --bg: #0f0f23; --bg2: #1a1a2e; --bg3: #161630;
+  --green: #16c784; --red: #e94560; --yellow: #f0c040;
+  --blue: #6c5ce7; --cyan: #00d2d3; --orange: #ff9f43;
+  --text: #eaeaea; --text-dim: #8888aa; --border: #2a2a4e;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; }
+.container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+.header h1 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px; font-weight: 700; color: var(--green); display: inline;
+}
+.header .tag {
+  background: rgba(22,199,132,0.15); color: var(--green);
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  padding: 3px 10px; border-radius: 3px; margin-left: 12px; vertical-align: middle;
+}
+.subtitle {
+  color: var(--text-dim); font-size: 14px; margin: 8px 0 28px;
+  font-weight: 300; line-height: 1.7;
+}
+.subtitle code {
+  font-family: 'JetBrains Mono', monospace; color: var(--yellow);
+  background: var(--bg2); padding: 2px 6px; border-radius: 3px; font-size: 12px;
+}
+.section-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim);
+  margin: 28px 0 12px;
+}
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px;
+}
+.card {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 18px 16px; transition: border-color 0.15s, transform 0.15s;
+}
+.card:hover { border-color: var(--green); transform: translateY(-2px); }
+.card .week {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--cyan); margin-bottom: 8px;
+}
+.card .title {
+  font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600;
+  color: var(--green); margin-bottom: 8px;
+}
+.card .desc { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+.card .file {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--text-dim); margin-top: 12px; opacity: 0.8;
+}
+.card.new { border-color: rgba(22,199,132,0.45); }
+.tip {
+  margin-top: 32px; padding: 16px 18px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: 10px;
+  font-size: 13px; color: var(--text-dim); line-height: 1.7;
+}
+.tip strong { color: var(--yellow); font-weight: 500; }
+.tip a { color: var(--cyan); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>microgpt 演示大厅</h1>
+    <span class="tag">DEMOS</span>
+  </div>
+  <p class="subtitle">
+    按学习顺序打开交互页，点「下一步」配合旁白理解 <code>microgpt.py</code>。<br>
+    讲解稿见 <code>docs/20260926-2313-演示方案.md</code>。
+  </p>
+
+  <div class="section-label">P0 · 本批新增（建议先走）</div>
+  <div class="grid">
+    <a class="card new" href="tokenizer_demo.html">
+      <div class="week">第 1 周 · 分词</div>
+      <div class="title">Tokenizer & BOS</div>
+      <div class="desc">字母如何变成数字；BOS 如何包裹名字。</div>
+      <div class="file">tokenizer_demo.html</div>
+    </a>
+    <a class="card new" href="loss_demo.html">
+      <div class="week">第 1 周 · 损失</div>
+      <div class="title">Cross-Entropy Loss</div>
+      <div class="desc">-log p(正确字母)：模型有多「惊讶」。</div>
+      <div class="file">loss_demo.html</div>
+    </a>
+    <a class="card new" href="train_step_demo.html">
+      <div class="week">第 4 周 · 训练</div>
+      <div class="title">One Training Step</div>
+      <div class="desc">取数据 → 前向 → loss → 反向 → Adam → 清零。</div>
+      <div class="file">train_step_demo.html</div>
+    </a>
+  </div>
+
+  <div class="section-label">已有 · 第 2～3 周核心</div>
+  <div class="grid">
+    <a class="card" href="autograd_demo.html">
+      <div class="week">第 2 周</div>
+      <div class="title">Autograd</div>
+      <div class="desc">Value 计算图与 backward 链式法则。</div>
+      <div class="file">autograd_demo.html</div>
+    </a>
+    <a class="card" href="softmax_demo.html">
+      <div class="week">第 3 周</div>
+      <div class="title">Softmax</div>
+      <div class="desc">logits → 概率；温度如何改变分布。</div>
+      <div class="file">softmax_demo.html</div>
+    </a>
+    <a class="card" href="rmsnorm_demo.html">
+      <div class="week">第 3 周</div>
+      <div class="title">RMSNorm</div>
+      <div class="desc">稳定激活「音量」，辅助深层训练。</div>
+      <div class="file">rmsnorm_demo.html</div>
+    </a>
+    <a class="card" href="attention_demo.html">
+      <div class="week">第 3 周</div>
+      <div class="title">Attention & KV Cache</div>
+      <div class="desc">自回归生成中 Q 查历史 K/V。</div>
+      <div class="file">attention_demo.html</div>
+    </a>
+  </div>
+
+  <div class="tip">
+    <strong>推荐演示顺序：</strong>
+    Tokenizer → Loss → Autograd → Softmax → RMSNorm → Attention → Train Step。<br>
+    口播文案：<a href="docs/20260926-2313-演示方案.md">docs/20260926-2313-演示方案.md</a>
+    · 学习路径：<a href="docs/20260925-2330-学习路径.md">docs/20260925-2330-学习路径.md</a>
+  </div>
+</div>
+</body>
+</html>

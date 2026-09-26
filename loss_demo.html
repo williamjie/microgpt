@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cross-Entropy Loss Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root {
+  --bg: #0f0f23; --bg2: #1a1a2e; --bg3: #161630;
+  --green: #16c784; --red: #e94560; --yellow: #f0c040;
+  --blue: #6c5ce7; --cyan: #00d2d3; --orange: #ff9f43;
+  --text: #eaeaea; --text-dim: #8888aa; --border: #2a2a4e;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; }
+.container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+.top-nav { margin-bottom: 16px; }
+.top-nav a { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--cyan); text-decoration: none; }
+.top-nav a:hover { color: var(--green); }
+.header h1 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px; font-weight: 700; color: var(--green); display: inline;
+}
+.header .tag {
+  background: rgba(22,199,132,0.15); color: var(--green);
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  padding: 3px 10px; border-radius: 3px; margin-left: 12px; vertical-align: middle;
+}
+.subtitle {
+  color: var(--text-dim); font-size: 14px; margin: 6px 0 24px;
+  font-weight: 300; line-height: 1.6;
+}
+.subtitle code {
+  font-family: 'JetBrains Mono', monospace; color: var(--yellow);
+  background: var(--bg2); padding: 2px 6px; border-radius: 3px; font-size: 12px;
+}
+.controls { display: flex; gap: 8px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+.ctrl-btn {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  padding: 10px 20px; border-radius: 8px; cursor: pointer; transition: all 0.15s;
+}
+.ctrl-btn:hover { border-color: var(--green); background: rgba(22,199,132,0.1); }
+.ctrl-btn.primary { background: rgba(22,199,132,0.15); border-color: var(--green); color: var(--green); }
+.ctrl-btn.reset:hover { border-color: var(--red); color: var(--red); }
+.ctrl-btn:disabled { opacity: 0.3; cursor: default; }
+.phase-pill {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  padding: 6px 14px; border-radius: 20px; margin-left: auto;
+  background: var(--bg3); color: var(--text-dim); border: 1px solid var(--border);
+}
+.narration {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 20px; margin-bottom: 20px; display: flex; gap: 14px; min-height: 64px;
+}
+.narration-icon { font-size: 18px; min-width: 24px; }
+.narration-text { font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.65; }
+.hl-g { color: var(--green); font-weight: 600; }
+.hl-y { color: var(--yellow); font-weight: 600; }
+.hl-r { color: var(--red); font-weight: 600; }
+.hl-c { color: var(--cyan); font-weight: 600; }
+.panel {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px; margin-bottom: 16px;
+}
+.panel-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 14px;
+}
+.context {
+  font-family: 'JetBrains Mono', monospace; font-size: 14px; margin-bottom: 16px; color: var(--text-dim);
+}
+.context strong { color: var(--yellow); }
+.bars { display: flex; flex-direction: column; gap: 8px; }
+.bar-row {
+  display: grid; grid-template-columns: 36px 1fr 70px; gap: 10px; align-items: center;
+  opacity: 0.35; transition: opacity 0.3s;
+}
+.bar-row.visible { opacity: 1; }
+.bar-row.target { opacity: 1; }
+.bar-row .lab {
+  font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700;
+}
+.bar-row.target .lab { color: var(--yellow); }
+.track {
+  height: 22px; background: var(--bg3); border-radius: 4px; overflow: hidden;
+}
+.fill {
+  height: 100%; border-radius: 4px; width: 0%;
+  transition: width 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: var(--blue);
+}
+.bar-row.target .fill { background: var(--yellow); }
+.pct {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; text-align: right; color: var(--text-dim);
+}
+.bar-row.target .pct { color: var(--yellow); font-weight: 600; }
+.metrics {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 4px;
+}
+.metric {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 14px;
+  text-align: center;
+}
+.metric .k {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim);
+  letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px;
+}
+.metric .v {
+  font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; color: var(--green);
+}
+.metric .v.warn { color: var(--orange); }
+.metric .v.bad { color: var(--red); }
+.metric .s { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+.formula {
+  font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--cyan);
+  text-align: center; padding: 12px; background: var(--bg3); border-radius: 8px; margin-top: 12px;
+  min-height: 44px; display: flex; align-items: center; justify-content: center;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top-nav"><a href="demos_index.html">← 演示大厅</a></div>
+  <div class="header">
+    <h1>Cross-Entropy Loss</h1>
+    <span class="tag">INTERACTIVE</span>
+  </div>
+  <p class="subtitle">
+    场景：前缀已是 <code>em</code>，正确答案下一个字母是 <code>m</code>。<br>
+    损失 <code>-log p(m)</code> 衡量模型有多「惊讶」。越低越好。
+  </p>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="btn-prev">← 上一步</button>
+    <button class="ctrl-btn primary" id="btn-next">下一步 →</button>
+    <button class="ctrl-btn reset" id="btn-reset">重置</button>
+    <div class="phase-pill" id="phase">步骤 0 / 5</div>
+  </div>
+
+  <div class="narration">
+    <div class="narration-icon">💡</div>
+    <div class="narration-text" id="narration"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">模型对「下一个字母」的概率（简化 5 类）</div>
+    <div class="context">上下文：<strong>e m</strong> _ &nbsp;→ 目标 token = <strong>m</strong></div>
+    <div class="bars" id="bars"></div>
+    <div class="formula" id="formula">loss = -log(p_target)</div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="k">p(target)</div>
+      <div class="v" id="m-p">—</div>
+      <div class="s">正确答案的概率</div>
+    </div>
+    <div class="metric">
+      <div class="k">loss = -log p</div>
+      <div class="v" id="m-loss">—</div>
+      <div class="s">越低越不惊讶</div>
+    </div>
+    <div class="metric">
+      <div class="k">随机基线</div>
+      <div class="v warn" id="m-base">≈ 3.30</div>
+      <div class="s">-log(1/27) 瞎猜水平</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Simplified 5-way distribution; target index 2 = 'm'
+const LABELS = ['a', 'e', 'm', 'o', 'x'];
+const TARGET = 2;
+
+// Two modes shown across steps: uncertain vs trained
+const UNCERTAIN = [0.18, 0.16, 0.22, 0.20, 0.24]; // p(m)=0.22 → loss ~1.51
+const TRAINED   = [0.05, 0.08, 0.72, 0.10, 0.05]; // p(m)=0.72 → loss ~0.33
+
+const STEPS = [
+  {
+    phase: '就绪',
+    narr: '训练目标：让模型对<strong style="color:var(--yellow)">正确的下一个字母</strong>赋予更高概率。点击下一步看概率条。',
+    probs: null, highlightTarget: false, showLoss: false, useTrained: false
+  },
+  {
+    phase: '概率分布',
+    narr: 'Softmax 之后，每个字母一个概率，<span class="hl-c">加起来 = 1</span>。这里用 5 类简化示意（真实 microgpt 是 27 类）。',
+    probs: UNCERTAIN, highlightTarget: false, showLoss: false, useTrained: false
+  },
+  {
+    phase: '标出目标',
+    narr: '本步正确答案是 <span class="hl-y">m</span>（像 emma 里第二个 m）。损失<strong>只关心</strong>目标上的概率，其它字母的概率间接通过「抢份额」影响它。',
+    probs: UNCERTAIN, highlightTarget: true, showLoss: false, useTrained: false
+  },
+  {
+    phase: '计算 loss',
+    narr: '交叉熵：<span class="hl-g">loss = -log(p_m)</span>。p=0.22 → loss≈1.51。概率越小，模型越「惊讶」，惩罚越大。',
+    probs: UNCERTAIN, highlightTarget: true, showLoss: true, useTrained: false
+  },
+  {
+    phase: '对比随机',
+    narr: '若 27 选 1 完全瞎猜，p=1/27，loss=<span class="hl-y">-log(1/27)≈3.30</span>。你跑 microgpt 时，开头 loss 就在这附近。',
+    probs: UNCERTAIN, highlightTarget: true, showLoss: true, useTrained: false
+  },
+  {
+    phase: '训练之后',
+    narr: '训练让 p(m) 升高（示意到 0.72），loss 降到约 <span class="hl-g">0.33</span>。整段名字上各位置取平均，再 <span class="hl-c">backward + Adam</span> 更新参数。',
+    probs: TRAINED, highlightTarget: true, showLoss: true, useTrained: true
+  }
+];
+
+let step = 0;
+
+function buildBars() {
+  const root = document.getElementById('bars');
+  root.innerHTML = '';
+  LABELS.forEach((lab, i) => {
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.id = 'R' + i;
+    row.innerHTML = `
+      <div class="lab">${lab}</div>
+      <div class="track"><div class="fill" id="F${i}"></div></div>
+      <div class="pct" id="P${i}">—</div>`;
+    root.appendChild(row);
+  });
+}
+
+function render() {
+  const s = STEPS[step];
+  document.getElementById('narration').innerHTML = s.narr;
+  document.getElementById('phase').textContent = `步骤 ${step} / ${STEPS.length - 1} · ${s.phase}`;
+  document.getElementById('btn-prev').disabled = step === 0;
+  document.getElementById('btn-next').disabled = step === STEPS.length - 1;
+
+  const probs = s.probs;
+  for (let i = 0; i < LABELS.length; i++) {
+    const row = document.getElementById('R' + i);
+    const fill = document.getElementById('F' + i);
+    const pct = document.getElementById('P' + i);
+    row.classList.toggle('visible', !!probs);
+    row.classList.toggle('target', !!probs && s.highlightTarget && i === TARGET);
+    if (probs) {
+      fill.style.width = (probs[i] * 100).toFixed(1) + '%';
+      pct.textContent = (probs[i] * 100).toFixed(0) + '%';
+    } else {
+      fill.style.width = '0%';
+      pct.textContent = '—';
+    }
+  }
+
+  const pEl = document.getElementById('m-p');
+  const lEl = document.getElementById('m-loss');
+  const formula = document.getElementById('formula');
+  if (probs && s.showLoss) {
+    const p = probs[TARGET];
+    const loss = -Math.log(p);
+    pEl.textContent = p.toFixed(2);
+    lEl.textContent = loss.toFixed(2);
+    lEl.className = 'v' + (loss > 2 ? ' bad' : loss > 1 ? ' warn' : '');
+    formula.textContent = `loss = -log(${p.toFixed(2)}) = ${loss.toFixed(4)}`;
+  } else {
+    pEl.textContent = '—';
+    lEl.textContent = '—';
+    lEl.className = 'v';
+    formula.textContent = 'loss = -log(p_target)';
+  }
+}
+
+document.getElementById('btn-next').onclick = () => { if (step < STEPS.length - 1) { step++; render(); } };
+document.getElementById('btn-prev').onclick = () => { if (step > 0) { step--; render(); } };
+document.getElementById('btn-reset').onclick = () => { step = 0; render(); };
+
+buildBars();
+render();
+</script>
+</body>
+</html>
